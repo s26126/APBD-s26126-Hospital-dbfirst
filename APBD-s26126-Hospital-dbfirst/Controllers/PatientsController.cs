@@ -1,3 +1,5 @@
+using APBD_s26126_Hospital_dbfirst.DTOs;
+using APBD_s26126_Hospital_dbfirst.Exceptions;
 using APBD_s26126_Hospital_dbfirst.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,5 +21,19 @@ public class PatientsController : ControllerBase
     {
         var res = await _dbService.GetPatientsAsync(search);
         return Ok(res);
+    }
+
+    [HttpPost("{pesel}/bedassignments")]
+    public async Task<IActionResult> AddBedAssignment(string pesel, CreateBedAssignmentDto dto)
+    {
+        try
+        {
+            await _dbService.AddBedAssignmentAsync(pesel, dto);
+            return Created();
+        }
+        catch (NotFoundException e)
+        {
+            return NotFound(e.Message);
+        }
     }
 }

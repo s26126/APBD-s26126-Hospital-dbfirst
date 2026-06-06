@@ -1,5 +1,7 @@
 using APBD_s26126_Hospital_dbfirst.Data;
 using APBD_s26126_Hospital_dbfirst.DTOs;
+using APBD_s26126_Hospital_dbfirst.Exceptions;
+using APBD_s26126_Hospital_dbfirst.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace APBD_s26126_Hospital_dbfirst.Services;
@@ -75,5 +77,42 @@ public class DbService : IDbService
             .ToListAsync();
 
         return res;
+    }
+
+    public async Task AddBedAssignmentAsync(string pesel, CreateBedAssignmentDto dto)
+    {
+        var patientExists = await _context.Patients.AnyAsync(p => p.Pesel == pesel);
+        if (!patientExists)
+            throw new NotFoundException($"Nie znaleziono pacjenta o numerze PESEL {pesel}");
+
+        var ward = await _context.Wards.FirstOrDefaultAsync(w => w.Name == dto.Ward);
+        if (ward == null)
+            throw new NotFoundException($"Nie znaleziono oddziału '{dto.Ward}'");
+
+        var bedType = await _context.BedTypes.FirstOrDefaultAsync(bt => bt.Name == dto.BedType);
+        if (bedType == null)
+            throw new NotFoundException($"Nie znaleziono typu łóżka '{dto.BedType}'");
+
+        var bed = await _context.Beds.FirstOrDefaultAsync(b =>
+            b.BedTypeId == bedType.Id &&
+            b.Room.WardId == ward.Id &&
+            !b.BedAssignments.Any(ba =>
+                (ba.To == null || ba.To > dto.From) &&
+                (dto.To == null || ba.From < dto.To)));
+
+        if (bed == null)
+            throw new NotFoundException(
+                $"Brak wolnego łóżka typu '{dto.BedType}' na oddziale '{dto.Ward}' w podanym okresie");
+
+        var bedAssignment = new BedAssignment
+        {
+            PatientPesel = pesel,
+            BedId = bed.Id,
+            From = dto.From,
+            To = dto.To
+        };
+
+        await _context.BedAssignments.AddAsync(bedAssignment);
+        await _context.SaveChangesAsync();
     }
 }
