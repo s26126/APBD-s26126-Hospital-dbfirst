@@ -13,10 +13,18 @@ public class DbService : IDbService
         _context = context;
     }
 
-
-    public async Task<IEnumerable<PatientDto>> GetPatientsAsync()
+    public async Task<IEnumerable<PatientDto>> GetPatientsAsync(string? search)
     {
-        var res = await _context.Patients
+        var query = _context.Patients.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(p =>
+                EF.Functions.Like(p.FirstName, $"%{search}%") ||
+                EF.Functions.Like(p.LastName, $"%{search}%"));
+        }
+
+        var res = await query
             .Select(p => new PatientDto()
             {
                 Pesel = p.Pesel,

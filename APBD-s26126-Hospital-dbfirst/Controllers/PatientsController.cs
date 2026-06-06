@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace APBD_s26126_Hospital_dbfirst.Controllers;
 
-
-
 [Route("api/[controller]")]
 [ApiController]
 public class PatientsController : ControllerBase
@@ -17,12 +15,9 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<IActionResult> Get([FromQuery] string? search)
     {
-        var res = await _dbService.GetPatientsAsync();
+        var res = await _dbService.GetPatientsAsync(search);
         return Ok(res);
     }
-    
-    
-    
 }
